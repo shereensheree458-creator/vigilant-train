@@ -1,0 +1,73 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+
+      - name: Fix Project Structure and Build APK
+        run: |
+          # 1. Clear any invalid pubspec
+          rm -rf pubspec.yaml
+
+          # 2. Re-create complete Flutter project template around existing lib/
+          flutter create --org com.rafeeq . --overwrite
+
+          # 3. Inject our required dependencies into pubspec.yaml
+          cat << 'EOF' > pubspec.yaml
+          name: rafeeq_smart
+          description: "A new Flutter project."
+          publish_to: 'none'
+
+          version: 1.0.0+1
+
+          environment:
+            sdk: '>=3.0.0 <4.0.0'
+
+          dependencies:
+            flutter:
+              sdk: flutter
+            cupertino_icons: ^1.0.6
+            google_mlkit_commons: ^0.8.0
+            google_mlkit_text_recognition: ^0.13.0
+            google_mlkit_object_detection: ^0.13.0
+
+          dev_dependencies:
+            flutter_test:
+              sdk: flutter
+            flutter_lints: ^3.0.0
+
+          flutter:
+            uses-material-design: true
+          EOF
+
+          # 4. Get packages and Build
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: '**/build/app/outputs/flutter-apk/app-release.apk'
+
