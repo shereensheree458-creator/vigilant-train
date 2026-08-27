@@ -1,0 +1,38 @@
+name: rafeeq_smart
+description: "A new Flutter project for Rafeeq Smart application."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  
+  # مكتبات الذكاء الاصطناعي والمعالجة المحلية (Offline AI)
+  tflite_flutter: ^0.10.4
+  google_mlkit_object_detection: ^0.13.0
+  google_mlkit_text_recognition: ^0.11.0
+  
+  # مكتبات الكاميرا والملاحة والـ GPS
+  camera: ^0.10.5+9
+  geolocator: ^10.1.0
+  flutter_compass: ^0.7.0
+  
+  # مكتبات التوجيه الصوتي والتحويل من نصوص لإشارات صوتية
+  flutter_tts: ^3.8.5
+  speech_to_text: ^6.6.0
+  
+  # مكتبات الاهتزازات التكتيكية وتفاعل الهاتف
+  vibration: ^1.8.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
