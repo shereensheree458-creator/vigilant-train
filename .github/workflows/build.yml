@@ -1,0 +1,46 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+
+      - name: Locate pubspec and Build APK
+        run: |
+          PUBSPEC_FILE=$(find . -name "pubspec.yaml" | head -n 1)
+          if [ -z "$PUBSPEC_FILE" ]; then
+            echo "Error: pubspec.yaml not found!"
+            exit 1
+          fi
+          PROJECT_DIR=$(dirname "$PUBSPEC_FILE")
+          echo "Found pubspec.yaml in: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: '**/build/app/outputs/flutter-apk/app-release.apk'
+
