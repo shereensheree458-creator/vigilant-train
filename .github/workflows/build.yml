@@ -1,0 +1,58 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+
+      - name: Auto Find and Build APK
+        run: |
+          TARGET_DIR=""
+          
+          # Search for pubspec.yaml file inside subfolders first
+          FOUND_FILE=$(find . -mindepth 2 -name "pubspec.yaml" | head -n 1)
+          
+          if [ -n "$FOUND_FILE" ]; then
+            TARGET_DIR=$(dirname "$FOUND_FILE")
+          elif [ -d "pubspec.yaml" ]; then
+            TARGET_DIR="pubspec.yaml"
+          elif [ -f "pubspec.yaml" ]; then
+            TARGET_DIR="."
+          fi
+
+          if [ -z "$TARGET_DIR" ]; then
+            echo "Error: Could not locate Flutter project directory!"
+            exit 1
+          fi
+
+          echo "Building Flutter project in directory: $TARGET_DIR"
+          cd "$TARGET_DIR"
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: '**/build/app/outputs/flutter-apk/app-release.apk'
+
