@@ -1,0 +1,77 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+
+      - name: Clean Rebuild & Fix Android Settings & Add Full Permissions
+        run: |
+          rm -rf pubspec.yaml android ios
+          
+          # Create app using valid name with underscore
+          flutter create --org com.rafeeq --project-name vigilant_train . --overwrite
+
+          cat << 'EOF' > pubspec.yaml
+          name: vigilant_train
+          description: "Smart Companion App"
+          publish_to: 'none'
+
+          version: 1.0.0+1
+
+          environment:
+            sdk: '>=3.0.0 <4.0.0'
+
+          dependencies:
+            flutter:
+              sdk: flutter
+            cupertino_icons: ^1.0.6
+            google_mlkit_commons: ^0.8.0
+            google_mlkit_text_recognition: ^0.13.0
+            google_mlkit_object_detection: ^0.13.0
+
+          dev_dependencies:
+            flutter_test:
+              sdk: flutter
+            flutter_lints: ^3.0.0
+
+          flutter:
+            uses-material-design: true
+          EOF
+
+          # Inject permissions into AndroidManifest.xml
+          MANIFEST_FILE="android/app/src/main/AndroidManifest.xml"
+          PERMISSIONS="<uses-permission android:name=\"android.permission.CAMERA\"/>\n    <uses-permission android:name=\"android.permission.RECORD_AUDIO\"/>\n    <uses-permission android:name=\"android.permission.INTERNET\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_BACKGROUND_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.READ_CONTACTS\"/>\n    <uses-permission android:name=\"android.permission.WRITE_CONTACTS\"/>\n    <uses-permission android:name=\"android.permission.WAKE_LOCK\"/>\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\"/>\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE_LOCATION\"/>\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE_CAMERA\"/>\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE_MICROPHONE\"/>"
+          sed -i "/<manifest/a \    $PERMISSIONS" $MANIFEST_FILE
+
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
+
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: '**/build/app/outputs/flutter-apk/app-release.apk'
+
