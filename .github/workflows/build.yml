@@ -1,0 +1,53 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Locate Project and Build APK
+        run: |
+          PUBSPEC_PATH=$(find . -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
+
+          if [ -z "$PUBSPEC_PATH" ]; then
+            echo "Error: pubspec.yaml not found anywhere in the repository!"
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$PUBSPEC_PATH")
+          echo "Project directory identified at: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+
+          if [ ! -d "lib" ] || [ -z "$(find lib -name '*.dart' -print -quit 2>/dev/null)" ]; then
+            echo "Error: No .dart files found in the lib directory!"
+            exit 1
+          fi
+
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: "**/build/app/outputs/flutter-apk/app-release.apk"
+
